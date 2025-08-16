@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水面波紋シミュレーター</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            cursor: crosshair;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            image-rendering: auto;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .mode-selector {
+            display: flex;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .mode-btn:not(:last-child) {
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mode-btn:hover {
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-btn.active {
+            color: white;
+            background: rgba(50, 100, 150, 0.8);
+        }
+
+        .reset-btn {
+            padding: 10px 20px;
+            background: rgba(50, 100, 150, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: rgba(70, 120, 170, 0.9);
+        }
+
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .info h3 {
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .info p {
+            margin: 3px 0;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .mode-description {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            color: white;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .mode-cards {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .mode-card {
+            flex: 1;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-5px);
+        }
+
+        .mode-card h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .mode-card p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .start-btn {
+            padding: 12px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="info">
+        <h3 id="modeTitle">水面波紋シミュレーター</h3>
+        <p>クリック: 波を発生</p>
+        <p>ドラッグ: 連続的に波を発生</p>
+        <p id="modeDescription"></p>
+    </div>
+
+    <div class="controls">
+        <div class="mode-selector">
+            <button class="mode-btn" data-mode="simple">簡易版</button>
+            <button class="mode-btn" data-mode="physics">物理版</button>
+        </div>
+        <button class="reset-btn" onclick="resetWaves()">リセット</button>
+    </div>
+
+    <div id="modal" class="modal active">
+        <div class="modal-content">
+            <h2>モードを選択</h2>
+            <div class="mode-cards">
+                <div class="mode-card" data-select="simple">
+                    <h3>簡易版</h3>
+                    <p>シンプルな波紋エフェクト<br>軽量で美しいビジュアル</p>
+                </div>
+                <div class="mode-card" data-select="physics">
+                    <h3>物理シミュレーション版</h3>
+                    <p>波の干渉を再現<br>リアルな物理演算</p>
+                </div>
+            </div>
+            <button class="start-btn" onclick="closeModal()">スタート</button>
+        </div>
+    </div>
+
+    <script src="wave.js"></script>
+</body>
+</html>
