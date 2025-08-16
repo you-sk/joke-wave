@@ -38,6 +38,8 @@ function setMode(mode) {
     } else {
         modeTitle.textContent = '水面波紋 - 物理シミュレーション版';
         modeDescription.textContent = '波同士が干渉して複雑なパターンを作ります';
+        // Initialize arrays for physics mode
+        initializeArrays();
     }
     
     // Reset and restart
@@ -271,7 +273,9 @@ canvas.addEventListener('click', (e) => {
     if (currentMode === 'simple') {
         addRipple(e.clientX, e.clientY);
     } else {
-        addWave(e.clientX, e.clientY, 200);
+        if (current && previous) {  // Check arrays are initialized
+            addWave(e.clientX, e.clientY, 200);
+        }
     }
 });
 
@@ -282,7 +286,9 @@ canvas.addEventListener('mousemove', (e) => {
                 addRipple(e.clientX, e.clientY);
             }
         } else {
-            addWave(e.clientX, e.clientY, 150);
+            if (current && previous) {  // Check arrays are initialized
+                addWave(e.clientX, e.clientY, 150);
+            }
         }
     }
 });
